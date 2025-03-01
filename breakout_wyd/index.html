@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quebra-Blocos (Breakout)</title>
+    <style>
+        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #222; }
+        canvas { border: 1px solid #fff; display: none; } /* Canvas escondido inicialmente */
+        #startScreen, #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            font-size: 24px;
+        }
+        #startButton, #restartButton {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+        #gameOver { display: none; } /* Tela de Game Over escondida inicialmente */
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="startScreen">
+        <p>Bem-vindo ao Quebra-Blocos!</p>
+        <button id="startButton">Iniciar Jogo</button>
+    </div>
+    <div id="gameOver">
+        <p>Game Over!</p>
+        <button id="restartButton">Reiniciar Jogo</button>
+    </div>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const startScreen = document.getElementById("startScreen");
+        const gameOverDiv = document.getElementById("gameOver");
+        const startButton = document.getElementById("startButton");
+        const restartButton = document.getElementById("restartButton");
+
+        const blocoLargura = 50;   // Tamanho de cada bloco
+        const blocoAltura = 50;    // Tamanho de cada bloco
+        const espaco = 10;         // Espaço entre os blocos
+
+        // Carregar a imagem (261x248)
+        const img = new Image();
+        img.src = 'blocos.png';  // Coloque o caminho correto da sua imagem
+
+        // Definir a posição e velocidade da bola
+        let bola = {
+            x: canvas.width / 2,
+            y: canvas.height - 30,
+            radius: 10,
+            dx: 4, // Velocidade inicial no eixo X
+            dy: -4 // Velocidade inicial no eixo Y
+        };
+
+        // Definir a barra
+        let barra = {
+            x: canvas.width / 2 - 50,
+            y: canvas.height - 20,
+            largura: 100,
+            altura: 10,
+            dx: 0
+        };
+
+        // Blocos a serem renderizados
+        let blocos = [];
+
+        // Variável para controlar o loop do jogo
+        let animationFrameId;
+
+        // Espera a imagem carregar para dividir os blocos
+        img.onload = () => {
+            // Calcular quantos blocos cabem na largura do canvas
+            const colunas = Math.floor(canvas.width / (blocoLargura + espaco));
+            const linhas = 5; // Número de linhas de blocos (pode ser ajustado)
+
+            // Criar os blocos para preencher a parte de cima do canvas
+            for (let i = 0; i < colunas; i++) {
+                for (let j = 0; j < linhas; j++) {
+                    let bloco = {
+                        x: i * (blocoLargura + espaco), // Posição X no canvas
+                        y: j * (blocoAltura + espaco), // Posição Y no canvas
+                        imgX: (i % Math.floor(img.width / blocoLargura)) * blocoLargura, // Posição X na imagem
+                        imgY: (j % Math.floor(img.height / blocoAltura)) * blocoAltura // Posição Y na imagem
+                    };
+                    blocos.push(bloco);
+                }
+            }
+        };
+
+        // Função para desenhar a bola
+        function desenharBola() {
+            ctx.beginPath();
+            ctx.arc(bola.x, bola.y, bola.radius, 0, Math.PI * 2);
+            ctx.fillStyle = "#fff";
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        // Função para desenhar a barra
+        function desenharBarra() {
+            ctx.beginPath();
+            ctx.rect(barra.x, barra.y, barra.largura, barra.altura);
+            ctx.fillStyle = "#fff";
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        // Função para desenhar os blocos
+        function desenharBlocos() {
+            for (let i = 0; i < blocos.length; i++) {
+                const bloco = blocos[i];
+                ctx.drawImage(img, bloco.imgX, bloco.imgY, blocoLargura, blocoAltura, bloco.x, bloco.y, blocoLargura, blocoAltura);
+            }
+        }
+
+        // Função para movimentar a barra
+        function moverBarra() {
+            barra.x += barra.dx;
+
+            if (barra.x < 0) barra.x = 0;
+            if (barra.x + barra.largura > canvas.width) barra.x = canvas.width - barra.largura;
+        }
+
+        // Função para detectar colisões entre a bola e os blocos
+        function detectarColisaoComBlocos() {
+            for (let i = 0; i < blocos.length; i++) {
+                let bloco = blocos[i];
+                if (bola.x > bloco.x && bola.x < bloco.x + blocoLargura &&
+                    bola.y > bloco.y && bola.y < bloco.y + blocoAltura) {
+                    // Colisão com o bloco
+                    blocos.splice(i, 1);
+                    bola.dy = -bola.dy;  // Rebote da bola
+                }
+            }
+        }
+
+        // Função para atualizar a posição da bola
+        function moverBola() {
+            bola.x += bola.dx;
+            bola.y += bola.dy;
+
+            // Colisão com as paredes
+            if (bola.x + bola.radius > canvas.width || bola.x - bola.radius < 0) {
+                bola.dx = -bola.dx;
+            }
+            if (bola.y - bola.radius < 0) {
+                bola.dy = -bola.dy;
+            }
+
+            // Colisão com a barra
+            if (bola.y + bola.radius > barra.y &&
+                bola.x > barra.x && bola.x < barra.x + barra.largura) {
+                bola.dy = -bola.dy;
+            }
+
+            // Se a bola cair para baixo, mostrar "Game Over"
+            if (bola.y + bola.radius > canvas.height) {
+                gameOver();
+            }
+        }
+
+        // Função para mostrar "Game Over"
+        function gameOver() {
+            gameOverDiv.style.display = "block"; // Mostra a tela de Game Over
+            canvas.style.display = "none"; // Esconde o canvas
+            cancelAnimationFrame(animationFrameId); // Para o loop do jogo
+        }
+
+        // Função para reiniciar o jogo
+        function reiniciarJogo() {
+            // Cancelar o loop anterior (se existir)
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+
+            // Resetar a posição e velocidade da bola
+            bola.x = canvas.width / 2;
+            bola.y = canvas.height - 30;
+            bola.dx = 4; // Resetar velocidade no eixo X
+            bola.dy = -4; // Resetar velocidade no eixo Y
+
+            // Resetar a posição da barra
+            barra.x = canvas.width / 2 - 50;
+            barra.y = canvas.height - 20;
+
+            // Recriar os blocos
+            blocos = [];
+            img.onload(); // Recarrega os blocos
+
+            // Esconder a tela de Game Over e mostrar o canvas
+            gameOverDiv.style.display = "none";
+            canvas.style.display = "block";
+
+            // Reiniciar o loop do jogo
+            iniciarJogo();
+        }
+
+        // Função para iniciar o jogo
+        function iniciarJogo() {
+            startScreen.style.display = "none"; // Esconde a tela inicial
+            canvas.style.display = "block"; // Mostra o canvas
+            animationFrameId = requestAnimationFrame(desenharTudo); // Inicia o loop do jogo
+        }
+
+        // Função para desenhar tudo
+        function desenharTudo() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);  // Limpar a tela
+            desenharBola();
+            desenharBarra();
+            desenharBlocos();
+            moverBola();
+            moverBarra();
+            detectarColisaoComBlocos();
+            animationFrameId = requestAnimationFrame(desenharTudo); // Continua o loop
+        }
+
+        // Evento para iniciar o jogo ao clicar no botão "Iniciar Jogo"
+        startButton.addEventListener("click", iniciarJogo);
+
+        // Evento para reiniciar o jogo ao clicar no botão "Reiniciar Jogo"
+        restartButton.addEventListener("click", reiniciarJogo);
+
+        // Função para controlar a barra com as setas
+        document.addEventListener("keydown", (e) => {
+            if (e.key == "ArrowRight") {
+                barra.dx = 5;
+            } else if (e.key == "ArrowLeft") {
+                barra.dx = -5;
+            }
+        });
+
+        document.addEventListener("keyup", () => {
+            barra.dx = 0;
+        });
+    </script>
+</body>
+</html>
