@@ -5,7 +5,7 @@ Aqui no forum voces podem interagir
 https://www.webcheats.com.br/topic/2300385-source-minigame-para-site-wyd/
 
 1º - Genius
-![genius](https://i.ibb.co/3YQzhB8L/Screenshot-12.png)
+<img src="https://i.ibb.co/3YQzhB8L/Screenshot-12.png" alt="Texto Alternativo">
 
 2 - Breakout
 ![Breakout](https://i.ibb.co/cXFdhChb/Screenshot-10.png)
