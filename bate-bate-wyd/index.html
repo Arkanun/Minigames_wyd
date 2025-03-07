@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bate nos Monstros</title>
+    <style>
+        body {
+    text-align: center;
+    font-family: Arial, sans-serif;
+}
+
+.game-container {
+    display: grid;
+    grid-template-columns: repeat(3, 100px);
+    grid-gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+    position: relative;
+}
+
+.hole {
+    width: 100px;
+    height: 100px;
+    background-color: #207777;
+    border-radius: 50%;
+    position: relative;
+    overflow: hidden;
+    z-index: 1; /* Buracos ficam atrás */
+}
+
+.marmot {
+    width: 80px;
+    height: 80px;
+    position: absolute;
+    bottom: -80px;
+    left: 10px;
+    transition: bottom 0.2s;
+    background-size: cover;
+}
+
+#hammer {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    pointer-events: none; /* Não bloqueia cliques */
+    transition: left 0.1s, top 0.1s; /* Movimento suave */
+    background-image: url('martelo.png');
+    background-size: cover;
+    z-index: 2; /* Martelo fica na frente */
+}
+
+/* Animação do martelo batendo */
+@keyframes hitHammer {
+    0% {
+        transform: rotate(0deg); /* posição inicial */
+    }
+    30% {
+        transform: rotate(40deg); /* Movimento para trás */
+    }
+    60% {
+        transform: rotate(-50deg); /* Movimento para frente */
+    }
+    100% {
+        transform: rotate(0deg); /* Volta à posição inicial */
+    }
+}
+
+    </style>
+</head>
+<body>
+    <h1>Bate no Monstros</h1>
+    <h2>Pontuação: <span id="score">0</span></h2>
+    <div class="game-container" id="game">
+        <div id="hammer"></div>
+    </div>
+    <script>
+         const gameContainer = document.getElementById("game");
+const scoreDisplay = document.getElementById("score");
+const hammer = document.getElementById("hammer");
+let score = 0;
+let intervalTime = 1000;
+let gameInterval;
+
+const mobImages = ['mob1.png', 'mob2.png', 'mob3.png'];
+
+// Carregar o som
+const smashSound = new Audio('smash.mp3');
+
+// Função para criar os buracos e os bichos
+function createHoles() {
+    for (let i = 0; i < 9; i++) {
+        let hole = document.createElement("div");
+        hole.classList.add("hole");
+        let marmot = document.createElement("div");
+        marmot.classList.add("marmot");
+        hole.appendChild(marmot);
+        hole.addEventListener("click", function () {
+            if (marmot.style.bottom === "0px" && isHammerOnMarmot(hammer, marmot)) {
+                score++;
+                scoreDisplay.textContent = score;
+                marmot.style.bottom = "-80px";
+                checkSpeedIncrease();
+                // Toca o som de smash
+                smashSound.play();
+                // Adiciona a animação do martelo
+                hitHammerAnimation();
+            }
+        });
+        gameContainer.appendChild(hole);
+    }
+}
+
+// Função para exibir aleatoriamente os bichos
+function showMarmot() {
+    const holes = document.querySelectorAll(".hole .marmot");
+    const randomHole = holes[Math.floor(Math.random() * holes.length)];
+    const randomMobImage = mobImages[Math.floor(Math.random() * mobImages.length)];
+
+    randomHole.style.backgroundImage = `url(${randomMobImage})`;
+    randomHole.style.backgroundSize = 'cover';
+    randomHole.style.bottom = "0px";
+
+    setTimeout(() => {
+        randomHole.style.bottom = "-80px";
+    }, 800);
+}
+
+// Função para verificar se o martelo está sobre o bicho
+function isHammerOnMarmot(hammer, marmot) {
+    const hammerRect = hammer.getBoundingClientRect();
+    const marmotRect = marmot.getBoundingClientRect();
+
+    return (
+        hammerRect.left < marmotRect.right &&
+        hammerRect.right > marmotRect.left &&
+        hammerRect.top < marmotRect.bottom &&
+        hammerRect.bottom > marmotRect.top
+    );
+}
+
+// Função para aumentar a velocidade conforme a pontuação
+function checkSpeedIncrease() {
+    if (score === 10) {
+        clearInterval(gameInterval);
+        intervalTime = 700;
+        gameInterval = setInterval(showMarmot, intervalTime);
+    }
+}
+
+// Função para mover o martelo com o mouse
+function moveHammer(event) {
+    const mouseX = event.clientX - gameContainer.offsetLeft - hammer.offsetWidth / 2;
+    const mouseY = event.clientY - gameContainer.offsetTop - hammer.offsetHeight / 2;
+
+    hammer.style.left = `${Math.min(Math.max(0, mouseX), gameContainer.offsetWidth - hammer.offsetWidth)}px`;
+    hammer.style.top = `${Math.min(Math.max(0, mouseY), gameContainer.offsetHeight - hammer.offsetHeight)}px`;
+}
+
+// Função para ativar a animação do martelo
+function hitHammerAnimation() {
+    hammer.style.animation = 'hitHammer 0.3s ease';  // Ativa a animação
+    hammer.addEventListener('animationend', () => {
+        hammer.style.animation = ''; // Remove a animação após terminar
+    });
+}
+
+createHoles();
+gameInterval = setInterval(showMarmot, intervalTime);
+
+// Adiciona o evento de mover o martelo com o mouse
+document.addEventListener("mousemove", moveHammer);
+
+    </script>
+</body>
+</html>
